@@ -12,6 +12,10 @@ import {
 } from "@/components/ui/select";
 import type { GradeSnapshot } from "./AuditSection";
 
+// --- FIREBASE IMPORTS ---
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase"; 
+
 const LOCATIONS = ["Peenya", "Hosur", "Bommasandra", "Other / Global"] as const;
 const SETUPS = [
   "Fully Manual / Paper Logs",
@@ -23,17 +27,40 @@ export function ContactSection({ grade }: { grade?: GradeSnapshot }) {
   const [name, setName] = useState("");
   const [location, setLocation] = useState<string>("");
   const [setup, setSetup] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !location || !setup) {
       toast.error("Please complete every field so our experts can prepare your audit.");
       return;
     }
-    toast.success("Thank you — our automation team will reach out within 24 hours.");
-    setName("");
-    setLocation("");
-    setSetup("");
+
+    setIsSubmitting(true);
+
+    try {
+      // Push data to Firebase 'audit_leads' collection
+      await addDoc(collection(db, "audit_leads"), {
+        name: name.trim(),
+        location: location,
+        setup: setup,
+        computedGrade: grade ? grade.letter : "Did not use calculator",
+        computedScore: grade ? grade.score : 0,
+        createdAt: serverTimestamp(),
+      });
+
+      toast.success("Thank you — our automation team will reach out within 24 hours.");
+      
+      // Reset form on success
+      setName("");
+      setLocation("");
+      setSetup("");
+    } catch (error) {
+      console.error("Error submitting lead:", error);
+      toast.error("System error. Please try again or contact us directly.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const showGrade = grade && grade.score > 0;
@@ -56,7 +83,7 @@ export function ContactSection({ grade }: { grade?: GradeSnapshot }) {
 
         <form
           onSubmit={onSubmit}
-          className="mx-auto mt-12 max-w-xl rounded-2xl border border-border bg-background p-8 md:p-10"
+          className="mx-auto mt-12 max-w-xl rounded-2xl border border-border bg-background p-8 md:p-10 shadow-sm"
         >
           {showGrade && (
             <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5 text-sm">
@@ -114,9 +141,10 @@ export function ContactSection({ grade }: { grade?: GradeSnapshot }) {
 
             <button
               type="submit"
-              className="btn-cta inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3.5 text-base font-semibold"
+              disabled={isSubmitting}
+              className="btn-cta inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3.5 text-base font-semibold disabled:opacity-70 transition-all"
             >
-              Submit for expert review
+              {isSubmitting ? "Submitting..." : "Submit for expert review"}
               <ArrowRight size={18} />
             </button>
           </div>
