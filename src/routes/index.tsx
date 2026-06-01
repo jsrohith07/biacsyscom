@@ -6,6 +6,7 @@ import { Hero } from "@/components/biacsys/Hero";
 import { AuditSection, type GradeSnapshot } from "@/components/biacsys/AuditSection";
 import { ContactSection } from "@/components/biacsys/ContactSection";
 import { Footer } from "@/components/biacsys/Footer";
+import { About } from "@/components/biacsys/About";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -37,6 +38,7 @@ function Index() {
       <main>
         <Hero />
         <AuditSection onGradeChange={setGrade} />
+        <About/>
         <ContactSection grade={grade} />
       </main>
       <Footer />
